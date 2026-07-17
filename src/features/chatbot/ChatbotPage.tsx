@@ -1,20 +1,16 @@
 ﻿'use client';
 
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Clock, Coins, DollarSign, MapPin, Send, Star} from 'lucide-react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {Send} from 'lucide-react';
 import {useTranslations} from 'next-intl';
 import {useAuth} from '@/shared/auth/AuthProvider';
 import {useRequireAuth} from '@/shared/auth/useRequireAuth';
-import MapView from '@/shared/components/MapView';
-import type {RouteOption, PlaceResult} from '@/shared/ai/types';
 
 type Message = {
   id: string;
   text: string;
   isUser: boolean;
   timestamp: Date;
-  routes?: RouteOption[];
-  places?: PlaceResult[];
 };
 
 function TypingIndicator() {
@@ -31,81 +27,8 @@ function TypingIndicator() {
   );
 }
 
-function RouteCard({route, t, tCommon}: {route: RouteOption; t: ReturnType<typeof useTranslations>; tCommon: ReturnType<typeof useTranslations>}) {
-  return (
-    <div className="animate-fade-in-up my-3 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white px-5 py-3">
-        <span className="text-sm font-semibold text-gray-900">
-          {t('routeOption')} {route.id}
-        </span>
-        <div className="flex items-center gap-3 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5 text-amber-600" />
-            {route.duration}
-          </span>
-          <span className="flex items-center gap-1">
-            <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
-            {route.cost}
-          </span>
-        </div>
-      </div>
-      <div className="px-5 py-4">
-        <div className="relative">
-          {route.steps.map((step, index) => (
-            <div key={index} className="relative flex gap-4 pb-5 last:pb-0">
-              {index < route.steps.length - 1 ? (
-                <div className="absolute bottom-5 left-[13px] top-5 w-0.5 bg-amber-200" />
-              ) : null}
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
-                {index + 1}
-              </div>
-              <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-sm text-gray-800">{step.instruction}</p>
-                <p className="mt-0.5 text-xs text-gray-500">{step.duration}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 px-5 py-3">
-        <span className="text-xs text-gray-500">{t('transfers')}: {route.transfers}</span>
-        <span className="text-gray-300">|</span>
-        {route.modes.map((mode) => (
-          <span key={mode} className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-            {tCommon(mode)}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PlaceCard({place}: {place: PlaceResult}) {
-  return (
-    <div className="animate-fade-in-up my-2 flex items-start gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-        <MapPin className="h-4 w-4 text-emerald-600" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-900">{place.name}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-          {place.rating ? (
-            <span className="flex items-center gap-1">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {place.rating}
-            </span>
-          ) : null}
-          {place.distance ? <span>{place.distance}</span> : null}
-          {place.address ? <span className="truncate">{place.address}</span> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function ChatbotPage() {
   const t = useTranslations('chatbot');
-  const tCommon = useTranslations('common');
   const {isAuthenticated, user} = useAuth();
   const {requireAuth} = useRequireAuth();
   const [messages, setMessages] = useState<Message[]>([
@@ -113,19 +36,8 @@ export function ChatbotPage() {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-    user.getIdToken().then(token => {
-      fetch('/api/points', {headers: {Authorization: `Bearer ${token}`}})
-        .then(res => res.json())
-        .then(data => { if (data.balance !== undefined) setBalance(data.balance); })
-        .catch(() => {});
-    });
-  }, [isAuthenticated, user]);
 
   const scrollToBottom = useCallback(() => {
     chatEndRef.current?.scrollIntoView({behavior: 'smooth'});
@@ -159,9 +71,7 @@ export function ChatbotPage() {
 
     const history = messages.map((msg) => ({
       role: msg.isUser ? 'user' as const : 'assistant' as const,
-      text: msg.text,
-      routes: msg.routes,
-      places: msg.places
+      text: msg.text
     }));
 
     setMessages((prev) => [...prev, userMsg]);
@@ -192,15 +102,11 @@ export function ChatbotPage() {
         return;
       }
 
-      if (data.balance !== undefined) setBalance(data.balance);
-
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
         text: data.text || 'عذراً، حدث خطأ. حاول مرة أخرى.',
         isUser: false,
-        timestamp: new Date(),
-        routes: data.routes,
-        places: data.places
+        timestamp: new Date()
       };
 
       setMessages((prev) => [...prev, botMsg]);
@@ -248,30 +154,9 @@ export function ChatbotPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="px-4 py-1">
-                    <div className="max-w-[85%]">
+                  <div className="flex justify-start px-4 py-1">
+                    <div className="max-w-[75%] rounded-2xl bg-gray-100 px-5 py-3">
                       <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">{msg.text}</p>
-                      {msg.routes?.map((route) => (
-                        <RouteCard key={route.id} route={route} t={t} tCommon={tCommon} />
-                      ))}
-                      {msg.places?.map((place) => (
-                        <PlaceCard key={place.id} place={place} />
-                      ))}
-                      {msg.places && msg.places.some(p => p.lat && p.lng) ? (
-                        <div className="mt-3">
-                          <MapView
-                            height="h-48"
-                            places={msg.places.filter(p => p.lat && p.lng).map(p => ({
-                              id: p.id,
-                              name: p.name,
-                              nameAr: p.name,
-                              lat: p.lat!,
-                              lng: p.lng!,
-                              type: 'place' as const,
-                            }))}
-                          />
-                        </div>
-                      ) : null}
                     </div>
                   </div>
                 )}
@@ -285,12 +170,6 @@ export function ChatbotPage() {
 
       <div className="border-t border-gray-200/80 bg-white/60 backdrop-blur-md">
         <div className="mx-auto max-w-3xl px-6 py-4">
-          {balance !== null ? (
-            <div className="mb-2 flex items-center justify-end gap-1 text-xs text-gray-500">
-              <Coins className="h-3 w-3 text-amber-500" />
-              <span>{balance} points</span>
-            </div>
-          ) : null}
           <div className="flex items-end gap-3 rounded-2xl border border-gray-200/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md transition focus-within:border-amber-300 focus-within:shadow-md">
             <textarea
               ref={textareaRef}

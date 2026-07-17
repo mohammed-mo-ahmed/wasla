@@ -3,8 +3,7 @@ import {processMessage} from '@/shared/ai/chatAgent';
 import type {ChatRequest, ChatResponse} from '@/shared/ai/types';
 import {verifyFirebaseToken} from '@/shared/firebase/admin';
 import {createAuthenticatedClient} from '@/shared/supabase/server-client';
-
-const CHAT_COST = 50;
+import {decrypt} from '@/shared/encryption';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,28 +18,30 @@ export async function POST(request: NextRequest) {
     const decoded = await verifyFirebaseToken(authHeader.slice(7));
     const supabase = createAuthenticatedClient(decoded);
 
-    const {data: points, error: pointsError} = await supabase
-      .from('user_points')
-      .select('balance')
+    const {data: keyData} = await supabase
+      .from('user_api_keys')
+      .select('encrypted_key')
       .eq('user_id', decoded.uid)
       .maybeSingle();
 
-    if (pointsError) {
-      console.error('[chat] points lookup error:', pointsError.message);
+    if (!keyData?.encrypted_key) {
       return NextResponse.json<ChatResponse>(
-        {text: 'عذراً، حدث خطأ في التحقق من الرصيد.'},
-        {status: 500}
+        {
+          text: 'يرجى حفظ مفتاح Gemini API الخاص بك أولاً من صفحة الإعدادات.'
+        },
+        {status: 403}
       );
     }
 
-    const balance = points?.balance ?? 0;
-
-    if (balance < CHAT_COST) {
+    let apiKey: string;
+    try {
+      const encryptionKey = process.env.API_KEY_ENCRYPTION_KEY;
+      if (!encryptionKey) throw new Error('Encryption key not configured');
+      apiKey = decrypt(keyData.encrypted_key, encryptionKey);
+    } catch {
       return NextResponse.json<ChatResponse>(
-        {
-          text: `عذراً، رصيد النقاط غير كافٍ. لديك ${balance} نقطة وتحتاج ${CHAT_COST} نقطة لكل استفسار. يمكنك الحصول على نقاط يومية مجانية من صفحة النقاط.`
-        },
-        {status: 403}
+        {text: 'عذراً، حدث خطأ في فك تشفير مفتاح API.'},
+        {status: 500}
       );
     }
 
@@ -54,46 +55,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await processMessage(message, history || []);
+    const result = await processMessage(message, history || [], apiKey);
 
-    const newBalance = balance - CHAT_COST;
-
-    const {error: updateError} = await supabase
-      .from('user_points')
-      .update({balance: newBalance})
-      .eq('user_id', decoded.uid);
-
-    if (updateError) {
-      console.error('[chat] points update error:', updateError.message);
-    }
-
-    const {error: txError} = await supabase.from('points_transactions').insert({
-      user_id: decoded.uid,
-      amount: -CHAT_COST,
-      type: 'chatbot_usage',
-      description: `Chatbot query: "${message.slice(0, 60)}"`,
-    });
-
-    if (txError) {
-      console.error('[chat] points tx error:', txError.message);
-    }
-
-    return NextResponse.json<ChatResponse>({
-      ...result,
-      balance: newBalance,
-    });
+    return NextResponse.json<ChatResponse>(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[chat]', message);
-
-    if (message.includes('GOOGLE_GENERATIVE_AI_API_KEY')) {
-      return NextResponse.json<ChatResponse>(
-        {
-          text: 'عذراً، لم يتم إعداد مفتاح الذكاء الاصطناعي بعد. يرجى التواصل مع الدعم الفني.'
-        },
-        {status: 500}
-      );
-    }
 
     if (message.includes('SAFETY') || message.includes('safety')) {
       return NextResponse.json<ChatResponse>(

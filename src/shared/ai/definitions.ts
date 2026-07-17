@@ -51,6 +51,48 @@ export const functionDeclarations: ToolDeclaration[] = [
     }
   },
   {
+    name: 'findBusBetween',
+    description:
+      'Find Cairo Public Transport Authority (هيئة النقل العام) bus lines that travel between ' +
+      'a given origin and destination in Cairo/Giza. This is the FIRST tool to call when the user ' +
+      'asks how to get from one place to another. Returns bus line numbers and the full route path. ' +
+      'Example: origin="العباسية", destination="التحرير" → finds bus lines that pass through both areas.',
+    parameters: {
+      type: 'object',
+      properties: {
+        origin: {
+          type: 'string',
+          description:
+            'Starting location name (e.g., "العباسية", "رمسيس", "المعادي", "مدينة نصر", "المطار").'
+        },
+        destination: {
+          type: 'string',
+          description:
+            'Destination location name (e.g., "التحرير", "مدينة نصر", "المطار", "المهندسين").'
+        }
+      },
+      required: ['origin', 'destination']
+    }
+  },
+  {
+    name: 'searchBusLine',
+    description:
+      'Look up a specific Cairo Public Transport Authority (هيئة النقل العام) bus line by its number ' +
+      'or search for bus lines that serve a particular area/stop. Returns the full route path. ' +
+      'Example: query="١٠٦" → shows bus line 106 route. query="العباسية" → shows all lines passing through Abbasiya.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description:
+            'Bus line number (e.g., "Γ", "V", "١٠٦", "خدمة") or area/stop name (e.g., "العباسية", "رمسيس", "التحرير").'
+        }
+      },
+      required: ['query']
+    }
+  },
+  {
     name: 'searchPlaces',
     description:
       'Search for places, points of interest, or businesses in Egypt. ' +

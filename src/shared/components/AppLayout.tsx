@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import {Coins, Languages, LogOut, MapPin, Menu, MessageCircle, Search, User, Users, X} from 'lucide-react';
+import {Key, Languages, LogOut, MapPin, Menu, MessageCircle, Search, User, Users, X} from 'lucide-react';
 import {useLocale, useTranslations} from 'next-intl';
 import {useState} from 'react';
 import {usePathname} from 'next/navigation';
@@ -28,7 +28,7 @@ export function AppLayout({children}: {children: React.ReactNode}) {
     {key: 'search', href: '/search', icon: Search},
     {key: 'importantStops', href: '/stops', icon: MapPin},
     {key: 'userRoutes', href: '/user-routes', icon: Users},
-    ...(isAuthenticated ? [{key: 'credits', href: '/credits', icon: Coins}] : [])
+    ...(isAuthenticated ? [{key: 'apiKey', href: '/api-key', icon: Key}] : [])
   ];
 
   const localizePath = (href: string) => `/${locale}${href === '/' ? '' : href}`;

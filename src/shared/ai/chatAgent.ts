@@ -5,6 +5,7 @@ import {SYSTEM_PROMPT} from './systemPrompt';
 import {searchRoutes} from './tools/routeSearch';
 import {searchPlaces} from './tools/placeSearch';
 import {searchForum} from './tools/searchForum';
+import {findBusBetween, searchBusLine} from './tools/busRouteSearch';
 import type {ChatHistoryItem, ChatResponse} from './types';
 
 function historyToContents(history: ChatHistoryItem[]): GeminiContent[] {
@@ -16,7 +17,8 @@ function historyToContents(history: ChatHistoryItem[]): GeminiContent[] {
 
 export async function processMessage(
   message: string,
-  history: ChatHistoryItem[]
+  history: ChatHistoryItem[],
+  apiKey?: string
 ): Promise<ChatResponse> {
   const contents: GeminiContent[] = [
     ...historyToContents(history),
@@ -30,7 +32,8 @@ export async function processMessage(
     const response = await generateContent({
       systemInstruction: SYSTEM_PROMPT,
       contents,
-      tools: [{function_declarations: functionDeclarations}]
+      tools: [{function_declarations: functionDeclarations}],
+      apiKey
     });
 
     const candidate = response.candidates?.[0];
@@ -92,6 +95,45 @@ export async function processMessage(
               functionResponse: {
                 name: 'searchForum',
                 response: {text: toolResult.text}
+              }
+            }
+          ]
+        });
+      } else if (fnCall.name === 'findBusBetween') {
+        const origin = fnArgs.origin ?? '';
+        const destination = fnArgs.destination ?? '';
+        const toolResult = await findBusBetween(origin, destination);
+
+        contents.push({
+          role: 'function',
+          parts: [
+            {
+              functionResponse: {
+                name: 'findBusBetween',
+                response: {
+                  text: toolResult.text,
+                  routes: toolResult.routes,
+                  found: toolResult.found
+                }
+              }
+            }
+          ]
+        });
+      } else if (fnCall.name === 'searchBusLine') {
+        const query = fnArgs.query ?? '';
+        const toolResult = await searchBusLine(query);
+
+        contents.push({
+          role: 'function',
+          parts: [
+            {
+              functionResponse: {
+                name: 'searchBusLine',
+                response: {
+                  text: toolResult.text,
+                  routes: toolResult.routes,
+                  found: toolResult.found
+                }
               }
             }
           ]

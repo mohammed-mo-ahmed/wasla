@@ -72,8 +72,9 @@ export async function generateContent(params: {
   systemInstruction?: string;
   contents: GeminiContent[];
   tools?: GeminiRequest['tools'];
+  apiKey?: string;
 }): Promise<GeminiResponse> {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey = params.apiKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
   if (!apiKey) {
     throw new Error(
