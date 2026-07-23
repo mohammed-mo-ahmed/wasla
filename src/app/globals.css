@@ -59,7 +59,7 @@
   align-items: center;
   gap: 0.5rem;
   background: linear-gradient(135deg, #1e3b8a00, #1e40af00);
-  color: #dbeafe;
+  color: #4b5563;
   border-radius: 9999px;
   padding: 0.5rem 1.25rem;
   font-size: 11px;
@@ -69,7 +69,7 @@
 
 .qabnix-badge:hover .qabnix-badge-content {
   background: linear-gradient(135deg, #1e40af17, #05369e28);
-  color: #ffffff;
+  color: #1f2937;
 }
 
 :root {
