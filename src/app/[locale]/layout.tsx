@@ -4,6 +4,7 @@ import {notFound} from 'next/navigation';
 import {routing, type Locale} from '@/i18n/routing';
 import {AuthProvider} from '@/shared/auth/AuthProvider';
 import {AppLayout} from '@/shared/components/AppLayout';
+import Footer from '@/components/Footer';
 
 type Props = {
   children: React.ReactNode;
@@ -39,6 +40,7 @@ export default async function LocaleLayout({children, params}: Props) {
       <NextIntlClientProvider locale={locale} messages={messages}>
         <AuthProvider>
           <AppLayout>{children}</AppLayout>
+          <Footer />
         </AuthProvider>
       </NextIntlClientProvider>
     </div>

@@ -49,6 +49,13 @@
     "majorStops": "Major Stops"
   },
   "common": {
+    "title": "Mwaslaty",
+    "home": "Home",
+    "products": "Services",
+    "offers": "Offers",
+    "about": "About",
+    "contact": "Contact",
+    "blog": "Blog",
     "from": "From",
     "to": "To",
     "searching": "Searching...",

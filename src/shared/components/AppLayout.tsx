@@ -19,7 +19,6 @@ export function AppLayout({children}: {children: React.ReactNode}) {
   const locale = useLocale();
   const pathname = usePathname() ?? `/${locale}`;
   const t = useTranslations('navigation');
-  const footer = useTranslations('footer');
   const {isAuthenticated, logout, user} = useAuth();
 
   const navItems: NavItem[] = [
@@ -189,12 +188,6 @@ export function AppLayout({children}: {children: React.ReactNode}) {
       </header>
 
       <main className="flex-1">{children}</main>
-
-      <footer className="border-t border-amber-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-gray-600 sm:px-6 lg:px-8">
-          &copy; 2026. {footer('text')}
-        </div>
-      </footer>
     </div>
   );
 }
